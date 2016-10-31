@@ -10,27 +10,19 @@
 
 import os
 from sqlite3 import dbapi2 as sqlite3
-from flask import Flask, request, session, g, redirect, url_for, abort, \
-     render_template, flash
+from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
 
 
 # create our little application :)
 app = Flask(__name__)
 
 # Load default config and override config from an environment variable
-app.config.update(dict(
-    DATABASE=os.path.join(app.root_path, 'flaskr.db'),
-    DEBUG=True,
-    SECRET_KEY='development key',
-    USERNAME='admin',
-    PASSWORD='default'
-))
-app.config.from_envvar('FLASKR_SETTINGS', silent=True)
+DATABASE='flaskr.db'
 
 
 def connect_db():
     """Connects to the specific database."""
-    rv = sqlite3.connect(app.config['DATABASE'])
+    rv = sqlite3.connect('DATABASE')
     rv.row_factory = sqlite3.Row
     return rv
 
@@ -76,14 +68,17 @@ def show_info():
 
 @app.route('/register', methods=['GET','POST'])
 def register():
-    if not session.get('logged_in'):
-        abort(401)
+    error = None
     db = get_db()
     if request.method == 'GET':
         return render_template('register.html')
     if request.method == 'POST':
         u = request.form.get('username') 
         p = request.form.get('password')
+        rp = request.form.get('confirm-password')
+        if p != rp:
+            error = 'password does not match'
+            return render_template('register.html',error=error)
     db.execute('insert into entries (name, password) values (%s, %s)',
                (u,p))
     db.commit()
@@ -111,3 +106,6 @@ def logout():
     session.pop('logged_in', None)
     flash('You were logged out')
     return redirect(url_for('show_info'))
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0',port=8080,debug=True)
