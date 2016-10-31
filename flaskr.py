@@ -9,6 +9,7 @@
 """
 
 import os
+import hashlib
 from sqlite3 import dbapi2 as sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
 
@@ -56,14 +57,29 @@ def close_db(error):
     """Closes the database again at the end of the request."""
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
+        
+  
+def encrypt_password(password, salt=None):
+    if not salt:
+        salt = os.urandom(16).encode('hex') # length 32
+    result = password
+    for i in range(3):
+        result = hashlib.sha256(password + salt).hexdigest()[::2] #length 32
+    return result, salt
+  
+class loginError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
 
 
-@app.route('/')
-def show_info():
-    db = get_db()
-    cur = db.execute('select title, text from entries order by id desc')
-    entries = cur.fetchall()
-    return render_template('show_info.html', entries=entries)
+#@app.route('/')
+#def show_info():
+#   db = get_db()
+#    cur = db.execute('select title, text from entries order by id desc')
+#    entries = cur.fetchall()
+#    return render_template('show_info.html', entries=entries)
 
 
 @app.route('/register', methods=['GET','POST'])
@@ -79,27 +95,36 @@ def register():
         if p != rp:
             error = 'password does not match'
             return render_template('register.html',error=error)
-    db.execute('insert into entries (name, password) values (%s, %s)',
-               (u,p))
-    db.commit()
-    flash('New entry was successfully posted')
-    return redirect(url_for('show_info'))
+        p,s=encrypt_password(p)
+        db.execute('insert into entries (name, password,salt) values (%s, %s,%s)',
+               (u,p,s))
+        db.commit()
+        flash('New entry was successfully posted')
+        return redirect(url_for('login'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    error = None
+    if request.method == 'GET':
+        referrer = request.args.get('login','/')
+        return render_template("login.html",next=referrer)
     if request.method == 'POST':
-        if request.form['username'] != app.config['USERNAME']:
-            error = 'Invalid username'
-        elif request.form['password'] != app.config['PASSWORD']:
-            error = 'Invalid password'
-        else:
-            session['logged_in'] = True
-            flash('You were logged in')
-            return redirect(url_for('show_info'))
-    return render_template('login.html', error=error)
-
+        u = request.form.get('username')
+        p = request.form.get('password')
+        n = request.form('login')
+        try:
+            g.db.cursor.execute('SELECT name FROM users WHERE name = %s',(u,))
+            if not g.db.cursor.fetchone():
+                raise loginError(u'错误的用户名或者密码!')
+            g.db.cursor.execute('SELECT salt,password FROM users WHERE name = %s',(u,))
+            salt,password = g.db.cursor.fetchone()
+            if encrypt_password(p,salt)[0] == password:
+                session['logged_in'] = u
+                return redirect(url_for('show_info'))
+            else:
+                raise loginError(u'错误的用户名或者密码!')
+        except loginError as e:
+            return render_template('login.html', next=next,error=e.value)
 
 @app.route('/logout')
 def logout():
