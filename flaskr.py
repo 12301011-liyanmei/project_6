@@ -10,6 +10,7 @@
 
 import os
 import hashlib
+import psutil
 from sqlite3 import dbapi2 as sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
 
@@ -82,12 +83,17 @@ class loginError(Exception):
         return repr(self.value)
 
 
-#@app.route('/')
-#def show_info():
+@app.route('/show_info')
+def show_info():
 #   db = get_db()
-#    cur = db.execute('select title, text from entries order by id desc')
-#    entries = cur.fetchall()
-#    return render_template('show_info.html', entries=entries)
+#   cur = db.execute('select title, text from entries order by id desc')
+#   entries = cur.fetchall()
+    mem = psutil.virtual_memory()
+    total = mem.total/(1024*1024)
+    used = mem.used/(1024*1024)
+    usedPer = '%.2f' % (used/total * 100) + '%'
+    cpuPer = (str)(psutil.cpu_percent(0))+'%'
+    return render_template('show_info.html',usedPer=usedPer)
 
 
 @app.route('/register', methods=['GET','POST'])
@@ -123,15 +129,18 @@ def login():
         p = request.form.get('password')
 #        n = request.form('login')
         try:
-            cursor.execute("SELECT name FROM users WHERE name = ?",(u,))
+            cursor.execute("SELECT name FROM users WHERE name = ?",[u])
             if not cursor.fetchone():
-                raise loginError(u'错误的用户名或者密码!')
-            cursor.execute("SELECT password FROM users WHERE name = ?",(u,))
+                print("!!!!!!!!!!!!!!!!!!name"+u)
+                raise loginError(u'错误的用户名或者密码!,name=')
+            cursor.execute("SELECT password FROM users WHERE name = ?",[u])
             password = cursor.fetchone()
-            if p == password:
+            print("!!!!!!!!!!!!!!!!!!!!password"+str(password[0]))
+            if p == str(password[0]):
                 session['logged_in'] = u
                 return redirect(url_for('show_info'))
             else:
+                print("!!!!!!!!!!!!!!!!!pass="+p)
                 raise loginError(u'错误的用户名或者密码!')
         except loginError as e:
             return render_template('login.html', next=next,error=e.value)
