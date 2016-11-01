@@ -123,7 +123,7 @@ def login():
             password = cursor.fetchone()
             print("!!!!!!!!!!!!!!!!!!!!password"+str(password[0]))
             if p == str(password[0]):
-                session['logged_in'] = u
+                session['username'] = u
                 return redirect(url_for('show_info'))
             else:
                 print("!!!!!!!!!!!!!!!!!pass="+p)
@@ -136,9 +136,11 @@ def show_info():
 #   db = get_db()
 #   cur = db.execute('select title, text from entries order by id desc')
 #   entries = cur.fetchall()
-    if session['logged_in'] == null:
-        raise loginError(u'You have no access before login')
-        return render_template('login.html')  
+    try:
+        if 'username' not in session:
+            raise loginError(u'You have no access before login')
+    except loginError as e:
+        return render_template('login.html',error=e.value)  
     mem = psutil.virtual_memory()
     total = mem.total/(1024*1024)
     used = mem.used/(1024*1024)
