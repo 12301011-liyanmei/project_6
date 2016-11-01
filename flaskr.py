@@ -18,12 +18,11 @@ from flask import Flask, request, session, g, redirect, url_for, abort, render_t
 app = Flask(__name__)
 
 # Load default config and override config from an environment variable
-DATABASE='flaskr.db'
 
 
 def connect_db():
     """Connects to the specific database."""
-    rv = sqlite3.connect('DATABASE')
+    rv = sqlite3.connect('sqlite.db')
     rv.row_factory = sqlite3.Row
     return rv
 
