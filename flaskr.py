@@ -16,6 +16,7 @@ from flask import Flask, request, session, g, redirect, url_for, abort, render_t
 
 # create our little application :)
 app = Flask(__name__)
+app.config['SECRET_KEY'] = '123456'
 
 # Load default config and override config from an environment variable
 
@@ -23,6 +24,15 @@ app = Flask(__name__)
 def connect_db():
     """Connects to the specific database."""
     rv = sqlite3.connect('sqlite.db')
+    cursor = rv.cursor()
+    cursor.execute("DROP TABLE IF EXISTS users;")
+    rv.commit()
+    
+    try:
+        cursor.execute("CREATE TABLE users(ID integer primary key autoincrement,                                           name varchar(32) not null,                                                      password varchar(32) not null);")           
+    except sqlite3.Error as e:
+        print("ERROR")
+    rv.commit()
     rv.row_factory = sqlite3.Row
     return rv
 
@@ -46,9 +56,8 @@ def get_db():
     """Opens a new database connection if there is none yet for the
     current application context.
     """
-    if not hasattr(g, 'sqlite_db'):
-        g.sqlite_db = connect_db()
-    return g.sqlite_db
+    db = sqlite3.connect('sqlite.db')
+    return db
 
 
 @app.teardown_appcontext
@@ -84,7 +93,7 @@ class loginError(Exception):
 @app.route('/register', methods=['GET','POST'])
 def register():
     error = None
-    db = get_db()
+    db = connect_db()
     if request.method == 'GET':
         return render_template('register.html')
     if request.method == 'POST':
@@ -95,28 +104,31 @@ def register():
             error = 'password does not match'
             return render_template('register.html',error=error)
 #        p,s=encrypt_password(p)
-        db.execute("insert into entries (name, password) values ('%s','%s')",(u,p,))
+        db.execute("insert into users (name, password) values (?,?)",(u,p))
         db.commit()
         flash('New entry was successfully posted')
+        db.close()
         return redirect(url_for('login'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    db = get_db()
+    cursor = db.cursor()
     if request.method == 'GET':
         referrer = request.args.get('login','/')
         return render_template("login.html",next=referrer)
     if request.method == 'POST':
         u = request.form.get('username')
         p = request.form.get('password')
-        n = request.form('login')
+#        n = request.form('login')
         try:
-            g.db.cursor.execute('SELECT name FROM users WHERE name = %s',(u,))
-            if not g.db.cursor.fetchone():
+            cursor.execute("SELECT name FROM users WHERE name = ?",(u,))
+            if not cursor.fetchone():
                 raise loginError(u'错误的用户名或者密码!')
-            g.db.cursor.execute('SELECT salt,password FROM users WHERE name = %s',(u,))
-            password = g.db.cursor.fetchone()
-            if password == password:
+            cursor.execute("SELECT password FROM users WHERE name = ?",(u,))
+            password = cursor.fetchone()
+            if p == password:
                 session['logged_in'] = u
                 return redirect(url_for('show_info'))
             else:
