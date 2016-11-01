@@ -88,12 +88,15 @@ def show_info():
 #   db = get_db()
 #   cur = db.execute('select title, text from entries order by id desc')
 #   entries = cur.fetchall()
+    if session('logged_in') == null:
+        raise loginEorror(u'You have no access before login')
+        return render_template('login.html')  
     mem = psutil.virtual_memory()
     total = mem.total/(1024*1024)
     used = mem.used/(1024*1024)
     usedPer = '%.2f' % (used/total * 100) + '%'
     cpuPer = (str)(psutil.cpu_percent(0))+'%'
-    return render_template('show_info.html',usedPer=usedPer)
+    return render_template('show_info.html',usedPer=usedPer,cpuPer=cpuPer)
 
 
 @app.route('/register', methods=['GET','POST'])
