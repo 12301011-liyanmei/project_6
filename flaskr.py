@@ -94,9 +94,8 @@ def register():
         if p != rp:
             error = 'password does not match'
             return render_template('register.html',error=error)
-        p,s=encrypt_password(p)
-        db.execute('insert into entries (name, password,salt) values (%s, %s,%s)',
-               (u,p,s))
+#        p,s=encrypt_password(p)
+        db.execute("insert into entries (name, password) values ('%s','%s')",(u,p,))
         db.commit()
         flash('New entry was successfully posted')
         return redirect(url_for('login'))
@@ -116,8 +115,8 @@ def login():
             if not g.db.cursor.fetchone():
                 raise loginError(u'错误的用户名或者密码!')
             g.db.cursor.execute('SELECT salt,password FROM users WHERE name = %s',(u,))
-            salt,password = g.db.cursor.fetchone()
-            if encrypt_password(p,salt)[0] == password:
+            password = g.db.cursor.fetchone()
+            if password == password:
                 session['logged_in'] = u
                 return redirect(url_for('show_info'))
             else:
