@@ -82,23 +82,6 @@ class loginError(Exception):
     def __str__(self):
         return repr(self.value)
 
-
-@app.route('/show_info')
-def show_info():
-#   db = get_db()
-#   cur = db.execute('select title, text from entries order by id desc')
-#   entries = cur.fetchall()
-    if session('logged_in') == null:
-        raise loginEorror(u'You have no access before login')
-        return render_template('login.html')  
-    mem = psutil.virtual_memory()
-    total = mem.total/(1024*1024)
-    used = mem.used/(1024*1024)
-    usedPer = '%.2f' % (used/total * 100) + '%'
-    cpuPer = (str)(psutil.cpu_percent(0))+'%'
-    return render_template('show_info.html',usedPer=usedPer,cpuPer=cpuPer)
-
-
 @app.route('/register', methods=['GET','POST'])
 def register():
     error = None
@@ -147,6 +130,21 @@ def login():
                 raise loginError(u'错误的用户名或者密码!')
         except loginError as e:
             return render_template('login.html', next=next,error=e.value)
+          
+@app.route('/show_info')
+def show_info():
+#   db = get_db()
+#   cur = db.execute('select title, text from entries order by id desc')
+#   entries = cur.fetchall()
+    if session['logged_in'] == null:
+        raise loginError(u'You have no access before login')
+        return render_template('login.html')  
+    mem = psutil.virtual_memory()
+    total = mem.total/(1024*1024)
+    used = mem.used/(1024*1024)
+    usedPer = '%.2f' % (used/total * 100) + '%'
+    cpuPer = (str)(psutil.cpu_percent(0))+'%'
+    return render_template('show_info.html',usedPer=usedPer,cpuPer=cpuPer)
 
 @app.route('/logout')
 def logout():
