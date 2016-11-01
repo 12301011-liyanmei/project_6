@@ -89,7 +89,11 @@ def register():
     if request.method == 'GET':
         return render_template('register.html')
     if request.method == 'POST':
-        u = request.form.get('username') 
+        u = request.form.get('username')
+        isMatch = bool(re.match("^.+\\@(\\[?)[a-zA-Z0-9\\-\\.]+\\.([a-zA-Z]{2,3}|[0-9]{1,3})(\\]?)$",u,re.VERBOSE))
+        if not isMatch:
+            error = 'Please input correct email!'
+            return render_template('register.html',error=error)
         p = request.form.get('password')
         rp = request.form.get('confirm-password')
         if p != rp:
@@ -118,7 +122,7 @@ def login():
             cursor.execute("SELECT name FROM users WHERE name = ?",[u])
             if not cursor.fetchone():
                 print("!!!!!!!!!!!!!!!!!!name"+u)
-                raise loginError(u'错误的用户名或者密码!,name=')
+                raise loginError(u'Wrong name or password!')
             cursor.execute("SELECT password FROM users WHERE name = ?",[u])
             password = cursor.fetchone()
             print("!!!!!!!!!!!!!!!!!!!!password"+str(password[0]))
@@ -127,7 +131,7 @@ def login():
                 return redirect(url_for('show_info'))
             else:
                 print("!!!!!!!!!!!!!!!!!pass="+p)
-                raise loginError(u'错误的用户名或者密码!')
+                raise loginError(u'Wrong name or password!')
         except loginError as e:
             return render_template('login.html', next=next,error=e.value)
           
