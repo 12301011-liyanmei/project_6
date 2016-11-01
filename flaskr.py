@@ -84,8 +84,8 @@ class loginError(Exception):
 
 @app.route('/register', methods=['GET','POST'])
 def register():
-    error = None
-    db = connect_db()
+    db = get_db()
+    cursor = db.cursor()
     if request.method == 'GET':
         return render_template('register.html')
     if request.method == 'POST':
@@ -164,4 +164,5 @@ def logout():
     return redirect(url_for('show_info'))
 
 if __name__ == '__main__':
+    connect_db()
     app.run(host='0.0.0.0',port=8080,debug=True)
