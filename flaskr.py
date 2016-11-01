@@ -94,6 +94,11 @@ def register():
         if not isMatch:
             error = 'Please input correct email!'
             return render_template('register.html',error=error)
+        try:
+            cursor.execute("SELECT name FROM users WHERE name = ?",[u])
+            if cursor.fetchone():
+#                print("!!!!!!!!!!!!!!!!!!name"+u)
+                raise loginError(u'User exist!')
         p = request.form.get('password')
         rp = request.form.get('confirm-password')
         if p != rp:
