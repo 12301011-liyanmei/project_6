@@ -9,13 +9,12 @@ RUN easy_install pip
 
 #add and install python modules
 ADD requirements.txt requirements.txt
-RUN cd /src; pip install -r requirements.txt
+RUN pip install -r requirements.txt
 
-#bundle source file
-ADD . /src
+#add templates of web
+RUN mkdir templates
+COPY /templates /templates
 
-#expose
 EXPOSE 8080
 
-#run
 CMD ["python","flaskr.py"]

@@ -10,6 +10,7 @@
 
 import os
 import hashlib
+import re
 import psutil
 from sqlite3 import dbapi2 as sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
@@ -98,9 +99,14 @@ def register():
             cursor.execute("SELECT name FROM users WHERE name = ?",[u])
             if cursor.fetchone():
 #                print("!!!!!!!!!!!!!!!!!!name"+u)
-                raise loginError(u'User exist!')
+             raise loginError(u'User exist!')
+        except loginError as e:
+             return render_template('register.html',error = e.value)
         p = request.form.get('password')
         rp = request.form.get('confirm-password')
+        if (p == None or p == '' or rp == '' or rp == None):
+             error ='The password is none'
+             return render_template('register.html',error=error)
         if p != rp:
             error = 'password does not match'
             return render_template('register.html',error=error)
@@ -122,6 +128,9 @@ def login():
     if request.method == 'POST':
         u = request.form.get('username')
         p = request.form.get('password')
+        if (u == None or u == '' or p == '' or p == None):
+            error = 'name or password is null'
+            return render_template('login.html',error=error)
 #        n = request.form('login')
         try:
             cursor.execute("SELECT name FROM users WHERE name = ?",[u])
@@ -161,7 +170,7 @@ def show_info():
 def logout():
     session.pop('logged_in', None)
     flash('You were logged out')
-    return redirect(url_for('show_info'))
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     connect_db()
